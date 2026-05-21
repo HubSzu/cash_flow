@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Flow Team Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    /* Cash Flow Team palette — intentionally different from the production meeting notes app */
+    --bg: #ecfdf5;
+    --surface: #ffffff;
+    --surface2: #d1fae5;
+    --border: #a7f3d0;
+    --border-strong: #34d399;
+    --text: #06281d;
+    --text-muted: #4b635b;
+    --accent: #047857;
+    --accent-light: #ccfbf1;
+    --danger: #be123c;
+    --success: #059669;
+    --warning: #b45309;
+    --header-bg: #064e3b;
+    --header-text: #ecfdf5;
+    --cash-positive: #047857;
+    --cash-negative: #be123c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .app-header { background: linear-gradient(90deg, var(--header-bg), #065f46); color: var(--header-text); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .app-header .logo { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .app-header .logo span { color: #facc15; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  .status-bar { background: #d1fae5; border-bottom: 1px solid var(--border-strong); padding: 8px 32px; display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); flex-shrink: 0; }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.err { background: var(--danger); }
+  .status-dot.loading { background: var(--warning); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-text { color: var(--text-muted); }
+
+  .tabs { background: #f0fdf4; border-bottom: 1px solid var(--border); display: flex; padding: 0 32px; overflow-x: auto; }
+  .tab { padding: 12px 20px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .btn { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 16px; border: 1.5px solid transparent; border-radius: 4px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: #065f46; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--bg); border-color: rgba(255,255,255,0.3); }
+  .btn-outline:hover { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.1); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border-color: var(--border); font-size: 12px; padding: 6px 12px; }
+  .btn-ghost:hover { border-color: var(--border-strong); color: var(--text); }
+  .btn-danger-ghost { background: transparent; color: var(--danger); border-color: transparent; padding: 4px 8px; font-size: 12px; cursor: pointer; border-radius: 4px; font-family: 'IBM Plex Sans', sans-serif; }
+  .btn-danger-ghost:hover { background: #fee2e2; }
+  .btn-add { background: var(--surface2); color: var(--text); border: 1.5px dashed var(--border-strong); width: 100%; justify-content: center; padding: 10px; font-size: 13px; border-radius: 6px; margin-top: 8px; }
+  .btn-add:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .btn-success { background: #dcfce7; color: var(--success); border: 1.5px solid #86efac; font-size: 12px; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; }
+  .btn-success:hover { background: #bbf7d0; }
+
+  .container { max-width: 1080px; margin: 0 auto; padding: 32px 32px 80px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .login-screen { max-width: 440px; margin: 80px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center; }
+  .login-screen h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .login-screen p { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6; }
+
+  .meta-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .meta-field label, .filter-field label, .tiny-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); display: block; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .meta-field input, .meta-field select, .filter-field input, .filter-field select, input.field, textarea.field, select.field {
+    width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--text); background: var(--bg); transition: border-color 0.15s;
+  }
+  .meta-field input:focus, .meta-field select:focus, .filter-field input:focus, .filter-field select:focus, input.field:focus, textarea.field:focus, select.field:focus { outline: none; border-color: var(--accent); background: white; }
+  .meta-field.full { grid-column: 1 / -1; }
+
+  .section { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+  .section-header { padding: 14px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .section-body { padding: 16px 20px; overflow: visible; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: 1.4fr 0.8fr 0.8fr 0.9fr; gap: 10px; }
+
+  textarea.notes-field { width: 100%; min-height: 80px; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; line-height: 1.6; color: var(--text); background: var(--bg); resize: vertical; }
+  textarea.notes-field:focus { outline: none; border-color: var(--accent); background: white; }
+
+  .items-table { width: 100%; border-collapse: collapse; }
+  .items-table th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  .items-table td { padding: 5px 4px; vertical-align: middle; }
+  .items-table tbody tr { border-bottom: 1px solid var(--surface2); }
+  .items-table tbody tr:hover { background: #fafaf8; }
+
+  .col-no { width: 32px; text-align: center; }
+  .col-del { width: 36px; text-align: center; }
+  .row-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-align: center; display: block; }
+
+  .badge { display: inline-block; font-size: 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; padding: 2px 7px; border-radius: 3px; background: var(--accent); color: white; }
+  .empty-hint { text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px; font-style: italic; }
+  .hint { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+
+  .cash-flow-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.16);
+    color: #fef3c7;
+    border: 1px solid rgba(250, 204, 21, 0.35);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: white; border-radius: 10px; width: 760px; max-width: 95vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface2); }
+  .modal-header h3 { font-size: 14px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; background: var(--surface2); align-items: center; }
+  #output-text { width: 100%; min-height: 340px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.7; border: 1px solid var(--border); border-radius: 4px; padding: 12px; background: var(--bg); resize: none; color: var(--text); }
+  .copy-success { color: var(--success); font-size: 12px; font-weight: 500; display: none; align-items: center; gap: 4px; }
+  .copy-success.show { display: flex; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 2000; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-width: 560px; }
+  .toast.show { display: flex; }
+  .toast-success { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
+  .toast-error { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
+  .toast-info { background: var(--accent-light); color: var(--accent); border: 1px solid #93c5fd; }
+
+  .archive-controls { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .archive-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .archive-card-header { padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .archive-card-header:hover { background: #e8e4dc; }
+  .archive-card-date { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .archive-card-meta { font-size: 12px; color: var(--text-muted); }
+  .archive-card-body { padding: 14px 16px; display: none; }
+  .archive-card-body.open { display: block; }
+  .note-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; background: var(--bg); padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); }
+
+  @media (max-width: 760px) {
+    .meta-bar, .grid-2, .grid-3, .grid-4, .archive-controls { grid-template-columns: 1fr; }
+    .container { padding: 16px 16px 60px; }
+    .app-header { padding: 12px 16px; }
+    .tabs { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE</span></div>
+  <div class="header-actions">
+    <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
+    <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Zaloguj</button>
+    <button class="btn btn-outline" id="btn-logout" onclick="signOut()" style="display:none">Wyloguj</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-text" id="status-text">Łączenie z Microsoft 365…</span>
+</div>
+
+<div class="tabs" id="main-tabs" style="display:none">
+  <div class="tab active" onclick="switchTab('new')">Nowe spotkanie</div>
+  <div class="tab" onclick="switchTab('archive')">Archiwum</div>
+  <div class="tab" onclick="switchTab('settings')">Konfiguracja</div>
+</div>
+
+<div class="container">
+
+  <div id="login-screen" class="login-screen" style="display:none">
+    <h2>Zaloguj się</h2>
+    <p>Aby korzystać z aplikacji Cash Flow Team, zaloguj się kontem Microsoft 365.</p>
+    <button class="btn btn-primary" onclick="signIn()" style="width:100%;justify-content:center;padding:12px">Zaloguj przez Microsoft 365</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-new">
+
+    <div class="meta-bar">
+      <div class="meta-field">
+        <label>Data spotkania</label>
+        <input type="date" id="meta-date">
+      </div>
+      <div class="meta-field">
+        <label>Godzina</label>
+        <input type="text" id="meta-time" placeholder="09:00 – 10:00">
+      </div>
+      <div class="meta-field">
+        <label>Prepared by</label>
+        <input type="text" id="meta-scribe" placeholder="Name">
+      </div>
+      <div class="meta-field full">
+        <label>Participants</label>
+        <input type="text" id="meta-attendees" value="Hubert, Karolina, Erik">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Executive summary</div>
+      </div>
+      <div class="section-body">
+        <textarea class="notes-field" id="summary" placeholder="Short summary in simple English. Example: This week we focus on overdue invoices, expected supplier payments and cash risks for the next 14 days."></textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Cash in — expected payments <span class="badge" id="cashin-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addCashIn()">+ Add cash in</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Client / source</th>
+              <th style="width:130px">Expected date</th>
+              <th style="width:130px">Amount / range</th>
+              <th style="width:120px">Confidence</th>
+              <th>Comment</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="cashin-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addCashIn()">+ Add cash in</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Cash out — expected payments <span class="badge" id="cashout-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addCashOut()">+ Add cash out</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Supplier / cost</th>
+              <th style="width:130px">Expected date</th>
+              <th style="width:130px">Amount / range</th>
+              <th style="width:120px">Flexibility</th>
+              <th>Comment</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="cashout-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addCashOut()">+ Add cash out</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Overdue receivables <span class="badge" id="overdue-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addOverdue()">+ Add overdue</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Client</th>
+              <th style="width:130px">Amount / range</th>
+              <th style="width:110px">Days overdue</th>
+              <th style="width:130px">Owner</th>
+              <th>Next action</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="overdue-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addOverdue()">+ Add overdue receivable</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Decisions <span class="badge" id="decision-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addDecision()">+ Add decision</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Decision</th>
+              <th style="width:130px">Owner</th>
+              <th style="width:140px">Cash flow impact</th>
+              <th style="width:120px">Follow-up</th>
+              <th>Comment</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="decisions-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addDecision()">+ Add decision</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Risks / blockers <span class="badge" id="risk-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addRisk()">+ Add risk</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Risk / blocker</th>
+              <th style="width:180px">Impact</th>
+              <th style="width:130px">Owner</th>
+              <th>Next step</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="risks-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addRisk()">+ Add risk</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Actions to Planner <span class="badge" id="action-count">0</span></div>
+        <button class="btn btn-ghost" onclick="addAction()">+ Add action</button>
+      </div>
+      <div class="section-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-no">#</th>
+              <th>Action</th>
+              <th style="width:130px">Owner</th>
+              <th style="width:130px">Due date</th>
+              <th style="width:140px">Impact</th>
+              <th>Area / client / project</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="actions-body"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addAction()">+ Add action</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Language support</div>
+      </div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div>
+            <label class="tiny-label">Polish support summary for Karolina</label>
+            <textarea class="notes-field" id="polish-summary" placeholder="Krótkie podsumowanie po polsku dla Karoliny..."></textarea>
+          </div>
+          <div>
+            <label class="tiny-label">Notes for Erik</label>
+            <textarea class="notes-field" id="erik-notes" placeholder="Short notes in simple English for Erik..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Next meeting</div>
+      </div>
+      <div class="section-body grid-3">
+        <div>
+          <label class="tiny-label">Date</label>
+          <input type="date" id="next-date" class="field">
+        </div>
+        <div>
+          <label class="tiny-label">Time</label>
+          <input type="text" id="next-time" class="field" placeholder="09:00">
+        </div>
+        <div>
+          <label class="tiny-label">Focus</label>
+          <input type="text" id="next-focus" class="field" placeholder="Main topic for next meeting">
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="resetForm()">Nowa notatka</button>
+      <button class="btn btn-ghost" onclick="openCopyModal()">Kopiuj podsumowanie</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveToSharePoint()">Zapisz w SharePoint + Planner</button>
+    </div>
+
+  </div>
+
+  <div class="tab-panel" id="panel-archive">
+    <div class="archive-controls">
+      <div class="filter-field">
+        <label>Filtruj po dacie</label>
+        <input type="date" id="filter-date" oninput="loadArchive()">
+      </div>
+      <div class="filter-field">
+        <label>Filtruj po słowie / kliencie</label>
+        <input type="text" id="filter-keyword" placeholder="np. klient, supplier, cash in" oninput="debounceArchive()">
+      </div>
+      <div>
+        <button class="btn btn-ghost" onclick="clearFilters()">Wyczyść filtry</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span id="archive-count" style="font-size:12px;color:var(--text-muted)"></span>
+      <button class="btn btn-success" onclick="copyArchiveResults()">Kopiuj wyniki</button>
+    </div>
+
+    <div id="archive-list">
+      <p class="empty-hint">Wyszukaj notatki używając filtrów powyżej.</p>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-settings">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Konfiguracja aplikacji</div>
+      </div>
+      <div class="section-body">
+        <p class="hint">
+          Ta wersja jest oddzielną aplikacją dla Cash Flow Team. Przed produkcyjnym użyciem trzeba uzupełnić:
+          adres witryny SharePoint, nazwy list i ID Plannera. Stałe są w sekcji CONFIG w kodzie JS.
+        </p>
+        <br>
+        <pre id="config-preview" style="white-space:pre-wrap;background:#052e22;color:#d1fae5;border-radius:8px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.6"></pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Cash Flow Team — copy summary</h3>
+      <button class="btn btn-ghost" onclick="closeModal()" style="color:var(--text)">✕</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="output-text" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <span class="copy-success" id="copy-ok">✓ Skopiowano!</span>
+      <button class="btn btn-ghost" onclick="closeModal()">Zamknij</button>
+      <button class="btn btn-primary" onclick="copyToClipboard()">Kopiuj do schowka</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var msalLoaded = false;
+var domReady = false;
+function tryInit() { if (msalLoaded && domReady) initAuth(); }
+function msalLoadError() {
+  setStatus('err', 'Błąd ładowania biblioteki logowania. Odśwież stronę.');
+  var btn = document.getElementById('btn-login'); if(btn) btn.style.display = '';
+}
+</script>
+<script src="https://unpkg.com/@azure/msal-browser@3.28.1/lib/msal-browser.min.js" onload="msalLoaded=true;tryInit()" onerror="msalLoadError()"></script>
+
+<script>
+// =====================================================
+// CONFIG — UZUPEŁNIJ PRZED WDROŻENIEM
+// =====================================================
+// Wzięte z aplikacji projektowej. Jeżeli używacie tej samej aplikacji Entra,
+// CLIENT_ID i TENANT_ID mogą zostać. Trzeba tylko dodać nowy Redirect URI
+// dla adresu GitHub Pages tej aplikacji.
+var CLIENT_ID    = 'bbd0bafd-f6c2-4f52-b0eb-42f85614e869';
+var TENANT_ID    = '15833e17-ca6d-4f22-9660-00d7fb2cf351';
+
+// Zmień, jeżeli SharePoint nadał inny adres niż /sites/CashFlowTeam
+var SITE_DOMAIN  = 'adboard73.sharepoint.com';
+var SITE_PATH    = '/sites/CashFlowTeam';
+
+// Listy SharePoint na witrynie Cash Flow Team
+var LIST_MEETINGS  = 'CF_Meetings';
+var LIST_NOTES     = 'CF_Notes';
+var LIST_ACTIONS   = 'CF_Actions';
+var LIST_DECISIONS = 'CF_Decisions';
+var LIST_RISKS     = 'CF_Risks';
+
+// Planner — wpisz wartości po utworzeniu osobnego planu Cash Flow Team Tasks.
+// Jeżeli zostawisz puste, aplikacja zapisze zadania tylko do SharePoint.
+var PLANNER_PLAN_ID    = '';
+var PLANNER_BUCKET_TODO = '';
+var PLANNER_GROUP_ID   = '';
+
+var teamEmails = {
+  'Hubert':   'h.szulc@structura360.com',
+  'Karolina': 'UZUPELNIJ_EMAIL_KAROLINY',
+  'Erik':     'UZUPELNIJ_EMAIL_ERIKA'
+};
+var teamMembers = Object.keys(teamEmails);
+var teamUserIds = {};
+
+var msalConfig = {
+  auth: {
+    clientId: CLIENT_ID,
+    authority: 'https://login.microsoftonline.com/' + TENANT_ID,
+    redirectUri: window.location.href.split('?')[0]
+  },
+  cache: { cacheLocation: 'sessionStorage' }
+};
+
+var msalInstance = null;
+var currentAccount = null;
+
+var loginRequest = {
+  scopes: [
+    'https://graph.microsoft.com/Sites.ReadWrite.All',
+    'https://graph.microsoft.com/Files.ReadWrite.All',
+    'https://graph.microsoft.com/Group.ReadWrite.All'
+  ]
+};
+
+var siteId = null;
+var listIds = {
+  meetings: null,
+  notes: null,
+  actions: null,
+  decisions: null,
+  risks: null
+};
+
+var rowCounters = { cashin: 0, cashout: 0, overdue: 0, decisions: 0, risks: 0, actions: 0 };
+var archiveData = [];
+var archiveDebounce = null;
+
+window.onload = function() {
+  document.getElementById('meta-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meta-scribe').value = 'Hubert';
+  addCashIn();
+  addCashOut();
+  addOverdue();
+  addDecision();
+  addRisk();
+  addAction();
+  updateConfigPreview();
+  domReady = true;
+  tryInit();
+};
+
+async function initAuth() {
+  msalInstance = await msal.PublicClientApplication.createPublicClientApplication(msalConfig);
+  var response = await msalInstance.handleRedirectPromise();
+  if (response) { currentAccount = response.account; onLoggedIn(); return; }
+  var accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    currentAccount = accounts[0];
+    onLoggedIn();
+  } else {
+    setStatus('err', 'Niezalogowany — kliknij Zaloguj aby kontynuować');
+    document.getElementById('btn-login').style.display = '';
+    document.getElementById('login-screen').style.display = '';
+  }
+}
+
+function signIn() { msalInstance.loginRedirect(loginRequest); }
+function signOut() { msalInstance.logoutRedirect({ account: currentAccount }); }
+
+async function onLoggedIn() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-tabs').style.display = '';
+  document.getElementById('btn-logout').style.display = '';
+  document.getElementById('btn-login').style.display = 'none';
+  var fullName = currentAccount.name || currentAccount.username;
+  document.getElementById('user-name').textContent = fullName;
+  var scribeEl = document.getElementById('meta-scribe');
+  if (scribeEl && !scribeEl.value) scribeEl.value = fullName;
+  setStatus('loading', 'Łączenie z SharePoint Cash Flow Team…');
+  await loadSharePointContext();
+}
+
+async function getToken() {
+  try {
+    var result = await msalInstance.acquireTokenSilent({ ...loginRequest, account: currentAccount });
+    return result.accessToken;
+  } catch(e) {
+    var result = await msalInstance.acquireTokenPopup(loginRequest);
+    return result.accessToken;
+  }
+}
+
+async function loadSharePointContext() {
+  try {
+    var token = await getToken();
+    siteId = await getSiteId(token);
+    listIds.meetings  = await getListId(token, siteId, LIST_MEETINGS);
+    listIds.notes     = await getListId(token, siteId, LIST_NOTES);
+    listIds.actions   = await getListId(token, siteId, LIST_ACTIONS);
+    listIds.decisions = await getListId(token, siteId, LIST_DECISIONS);
+    listIds.risks     = await getListId(token, siteId, LIST_RISKS);
+
+    await loadTeamUserIds(token);
+
+    var missing = [];
+    Object.keys(listIds).forEach(function(k) { if (!listIds[k]) missing.push(k); });
+    if (missing.length) {
+      setStatus('err', 'Połączono z witryną, ale brakuje list: ' + missing.join(', ') + '. Utwórz je w SharePoint.');
+    } else {
+      setStatus('ok', 'Połączono z SharePoint — Cash Flow Team');
+    }
+  } catch(e) {
+    setStatus('err', 'Błąd połączenia z SharePoint: ' + e.message);
+  }
+}
+
+async function getSiteId(token) {
+  var r = await fetch('https://graph.microsoft.com/v1.0/sites/' + SITE_DOMAIN + ':' + SITE_PATH, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  if (!r.ok) throw new Error('Nie znaleziono witryny ' + SITE_DOMAIN + ':' + SITE_PATH);
+  var d = await r.json();
+  return d.id;
+}
+
+async function getListId(token, siteid, listName) {
+  var r = await fetch('https://graph.microsoft.com/v1.0/sites/' + siteid + '/lists?$filter=displayName eq \'' + listName + '\'', {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  var d = await r.json();
+  return d.value && d.value[0] ? d.value[0].id : null;
+}
+
+async function loadTeamUserIds(token) {
+  for (var name in teamEmails) {
+    var email = teamEmails[name];
+    if (!email || email.indexOf('UZUPELNIJ') === 0) continue;
+    try {
+      var r = await fetch('https://graph.microsoft.com/v1.0/users/' + encodeURIComponent(email) + '?$select=id', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (r.ok) {
+        var d = await r.json();
+        teamUserIds[name] = d.id;
+      }
+    } catch(e) {
+      console.error('Cannot fetch user ID for', name, e);
+    }
+  }
+}
+
+async function createPlannerTask(token, taskTitle, assigneeName, dueDate, impact, area) {
+  if (!PLANNER_PLAN_ID || !PLANNER_BUCKET_TODO) return null;
+
+  var fullTitle = taskTitle;
+  if (area) fullTitle = taskTitle + ' (' + area + ')';
+  if (fullTitle.length > 255) fullTitle = fullTitle.substring(0, 255);
+
+  var body = {
+    planId: PLANNER_PLAN_ID,
+    bucketId: PLANNER_BUCKET_TODO,
+    title: fullTitle
+  };
+
+  if (assigneeName && teamUserIds[assigneeName]) {
+    body.assignments = {};
+    body.assignments[teamUserIds[assigneeName]] = {
+      '@odata.type': '#microsoft.graph.plannerAssignment',
+      'orderHint': ' !'
+    };
+  }
+
+  if (dueDate) body.dueDateTime = dueDate + 'T12:00:00Z';
+
+  var r = await fetch('https://graph.microsoft.com/v1.0/planner/tasks', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!r.ok) {
+    var errText = await r.text();
+    throw new Error('Planner API error: ' + r.status + ' ' + errText);
+  }
+  return await r.json();
+}
+
+function addCashIn() {
+  rowCounters.cashin++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.cashin + '</span></td>' +
+    '<td><input class="field" placeholder="Client / source"></td>' +
+    '<td><input type="date" class="field"></td>' +
+    '<td><input class="field" placeholder="Amount / range"></td>' +
+    '<td><select class="field"><option>High</option><option>Medium</option><option>Low</option></select></td>' +
+    '<td><input class="field" placeholder="Comment"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'cashin-count\')">✕</button></td>';
+  document.getElementById('cashin-body').appendChild(tr);
+  updateCount('cashin-count', 'cashin-body');
+}
+
+function addCashOut() {
+  rowCounters.cashout++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.cashout + '</span></td>' +
+    '<td><input class="field" placeholder="Supplier / cost"></td>' +
+    '<td><input type="date" class="field"></td>' +
+    '<td><input class="field" placeholder="Amount / range"></td>' +
+    '<td><select class="field"><option>Low</option><option>Medium</option><option>High</option></select></td>' +
+    '<td><input class="field" placeholder="Comment"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'cashout-count\')">✕</button></td>';
+  document.getElementById('cashout-body').appendChild(tr);
+  updateCount('cashout-count', 'cashout-body');
+}
+
+function addOverdue() {
+  rowCounters.overdue++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.overdue + '</span></td>' +
+    '<td><input class="field" placeholder="Client"></td>' +
+    '<td><input class="field" placeholder="Amount / range"></td>' +
+    '<td><input class="field" placeholder="Days"></td>' +
+    '<td>' + memberSelect() + '</td>' +
+    '<td><input class="field" placeholder="Next action"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'overdue-count\')">✕</button></td>';
+  document.getElementById('overdue-body').appendChild(tr);
+  updateCount('overdue-count', 'overdue-body');
+}
+
+function addDecision() {
+  rowCounters.decisions++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.decisions + '</span></td>' +
+    '<td><input class="field" placeholder="Decision"></td>' +
+    '<td>' + memberSelect() + '</td>' +
+    '<td><select class="field"><option>Cash in</option><option>Cash out</option><option>Risk</option><option>Neutral</option></select></td>' +
+    '<td><select class="field"><option>Yes</option><option>No</option></select></td>' +
+    '<td><input class="field" placeholder="Comment"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'decision-count\')">✕</button></td>';
+  document.getElementById('decisions-body').appendChild(tr);
+  updateCount('decision-count', 'decisions-body');
+}
+
+function addRisk() {
+  rowCounters.risks++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.risks + '</span></td>' +
+    '<td><input class="field" placeholder="Risk / blocker"></td>' +
+    '<td><input class="field" placeholder="Impact"></td>' +
+    '<td>' + memberSelect() + '</td>' +
+    '<td><input class="field" placeholder="Next step"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'risk-count\')">✕</button></td>';
+  document.getElementById('risks-body').appendChild(tr);
+  updateCount('risk-count', 'risks-body');
+}
+
+function addAction() {
+  rowCounters.actions++;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td class="col-no"><span class="row-num">' + rowCounters.actions + '</span></td>' +
+    '<td><input class="field" placeholder="Action"></td>' +
+    '<td>' + memberSelect() + '</td>' +
+    '<td><input type="date" class="field"></td>' +
+    '<td><select class="field"><option>Cash in</option><option>Cash out</option><option>Risk</option><option>Neutral</option></select></td>' +
+    '<td><input class="field" placeholder="Area / client / project"></td>' +
+    '<td class="col-del"><button class="btn btn-danger-ghost" onclick="removeRow(this, \'action-count\')">✕</button></td>';
+  document.getElementById('actions-body').appendChild(tr);
+  updateCount('action-count', 'actions-body');
+}
+
+function memberSelect() {
+  var opts = '<option value="">—</option>';
+  teamMembers.forEach(function(m) { opts += '<option>' + m + '</option>'; });
+  return '<select class="field">' + opts + '</select>';
+}
+
+function removeRow(btn, countId) {
+  var tr = btn.closest('tr');
+  var tbody = tr.parentElement;
+  tr.remove();
+  document.getElementById(countId).textContent = tbody.rows.length;
+}
+
+function updateCount(countId, bodyId) {
+  document.getElementById(countId).textContent = document.getElementById(bodyId).rows.length;
+}
+
+function getTableRows(bodyId) {
+  var rows = [];
+  document.getElementById(bodyId).querySelectorAll('tr').forEach(function(tr) {
+    var vals = [];
+    tr.querySelectorAll('input, select').forEach(function(el) { vals.push(el.value.trim()); });
+    if (vals.some(Boolean)) rows.push(vals);
+  });
+  return rows;
+}
+
+function getValue(id) { return (document.getElementById(id) || { value: '' }).value.trim(); }
+
+function buildOutput() {
+  var dateVal = getValue('meta-date');
+  var sep = '─'.repeat(64);
+  var lines = [
+    'CASH FLOW TEAM — WEEKLY MEETING NOTES',
+    sep,
+    'Date:         ' + fmtDate(dateVal),
+    'Time:         ' + (getValue('meta-time') || '—'),
+    'Prepared by:  ' + (getValue('meta-scribe') || '—'),
+    'Participants: ' + (getValue('meta-attendees') || '—'),
+    '',
+    'EXECUTIVE SUMMARY',
+    sep,
+    getValue('summary') || '(empty)',
+    ''
+  ];
+
+  addSection(lines, 'CASH IN — EXPECTED PAYMENTS', ['Source / client', 'Expected date', 'Amount / range', 'Confidence', 'Comment'], getTableRows('cashin-body'), [1]);
+  addSection(lines, 'CASH OUT — EXPECTED PAYMENTS', ['Supplier / cost', 'Expected date', 'Amount / range', 'Flexibility', 'Comment'], getTableRows('cashout-body'), [1]);
+  addSection(lines, 'OVERDUE RECEIVABLES', ['Client', 'Amount / range', 'Days overdue', 'Owner', 'Next action'], getTableRows('overdue-body'), []);
+  addSection(lines, 'DECISIONS', ['Decision', 'Owner', 'Cash flow impact', 'Follow-up', 'Comment'], getTableRows('decisions-body'), []);
+  addSection(lines, 'RISKS / BLOCKERS', ['Risk / blocker', 'Impact', 'Owner', 'Next step'], getTableRows('risks-body'), []);
+  addSection(lines, 'ACTIONS', ['Action', 'Owner', 'Due date', 'Impact', 'Area / client / project'], getTableRows('actions-body'), [2]);
+
+  lines.push('POLISH SUPPORT SUMMARY FOR KAROLINA', sep, getValue('polish-summary') || '(empty)', '');
+  lines.push('NOTES FOR ERIK', sep, getValue('erik-notes') || '(empty)', '');
+  lines.push('NEXT MEETING', sep);
+  lines.push('Date: ' + fmtDate(getValue('next-date')) + '   Time: ' + (getValue('next-time') || '—'));
+  lines.push('Focus: ' + (getValue('next-focus') || '—'));
+  return lines.join('\n');
+}
+
+function addSection(lines, title, headers, rows, dateIndexes) {
+  lines.push(title, '─'.repeat(64));
+  if (!rows.length) {
+    lines.push('(empty)', '');
+    return;
+  }
+  rows.forEach(function(r, idx) {
+    lines.push((idx + 1) + '.');
+    headers.forEach(function(h, i) {
+      var val = r[i] || '—';
+      if (dateIndexes.indexOf(i) >= 0) val = fmtDate(val);
+      lines.push('   ' + h + ': ' + val);
+    });
+  });
+  lines.push('');
+}
+
+async function saveToSharePoint() {
+  if (!siteId || !listIds.meetings || !listIds.notes) {
+    showToast('Brak połączenia z SharePoint albo brakuje wymaganych list.', 'error');
+    return;
+  }
+  var dateVal = getValue('meta-date');
+  if (!dateVal) { showToast('Podaj datę spotkania.', 'error'); return; }
+
+  var btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Zapisywanie…';
+
+  try {
+    var token = await getToken();
+
+    var meetingId = await createMeeting(token, dateVal);
+    await createNote(token, meetingId, dateVal, buildOutput());
+
+    var decisionRows = getTableRows('decisions-body');
+    for (var i = 0; i < decisionRows.length; i++) {
+      await createDecision(token, meetingId, dateVal, decisionRows[i]);
+    }
+
+    var riskRows = getTableRows('risks-body');
+    for (var r = 0; r < riskRows.length; r++) {
+      await createRisk(token, meetingId, dateVal, riskRows[r]);
+    }
+
+    var actionRows = getTableRows('actions-body');
+    var plannerOk = 0, plannerFail = 0;
+    for (var a = 0; a < actionRows.length; a++) {
+      var row = actionRows[a];
+      var plannerSuccess = false;
+      try {
+        var plannerTask = await createPlannerTask(token, row[0], row[1], row[2], row[3], row[4]);
+        plannerSuccess = !!plannerTask;
+        if (plannerSuccess) plannerOk++;
+      } catch(e) {
+        console.error('Planner failed', row[0], e);
+        plannerFail++;
+      }
+      await createAction(token, meetingId, dateVal, row, plannerSuccess);
+    }
+
+    var msg = 'Zapisano spotkanie w SharePoint';
+    if (plannerOk) msg += ' • Planner: ' + plannerOk;
+    if (!PLANNER_PLAN_ID) msg += ' • Planner pominięty, brak PLAN_ID';
+    if (plannerFail) msg += ' • błędy Plannera: ' + plannerFail;
+
+    showToast(msg, plannerFail ? 'error' : 'success');
+    btn.disabled = true;
+    btn.textContent = '✓ Zapisano';
+    btn.style.background = '#dcfce7';
+    btn.style.borderColor = '#86efac';
+    btn.style.color = '#166534';
+  } catch(e) {
+    showToast('Błąd zapisu: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Zapisz w SharePoint + Planner';
+  }
+}
+
+async function createMeeting(token, dateVal) {
+  var body = {
+    fields: {
+      Title: 'Cash Flow Meeting ' + dateVal,
+      MeetingDate: dateVal + 'T12:00:00Z',
+      MeetingTime: getValue('meta-time'),
+      PreparedBy: getValue('meta-scribe'),
+      Participants: getValue('meta-attendees')
+    }
+  };
+  var r = await postListItem(token, listIds.meetings, body);
+  return String(r.id);
+}
+
+async function createNote(token, meetingId, dateVal, text) {
+  var body = {
+    fields: {
+      Title: dateVal + ' | Cash Flow Weekly Notes',
+      MeetingIdText: meetingId,
+      NoteText: text.substring(0, 20000),
+      Summary: getValue('summary').substring(0, 4000),
+      PolishSummary: getValue('polish-summary').substring(0, 4000),
+      ErikNotes: getValue('erik-notes').substring(0, 4000)
+    }
+  };
+  await postListItem(token, listIds.notes, body);
+}
+
+async function createAction(token, meetingId, dateVal, row, plannerSuccess) {
+  if (!listIds.actions) return;
+  var due = row[2] ? row[2] + 'T12:00:00Z' : null;
+  var body = {
+    fields: {
+      Title: row[0].substring(0, 255),
+      MeetingIdText: meetingId,
+      ActionText: row[0].substring(0, 4000),
+      Owner: row[1],
+      DueDate: due,
+      CashFlowImpact: row[3],
+      Area: row[4],
+      SentToPlanner: plannerSuccess
+    }
+  };
+  if (!due) delete body.fields.DueDate;
+  await postListItem(token, listIds.actions, body);
+}
+
+async function createDecision(token, meetingId, dateVal, row) {
+  if (!listIds.decisions) return;
+  var body = {
+    fields: {
+      Title: row[0].substring(0, 255),
+      MeetingIdText: meetingId,
+      DecisionText: row[0].substring(0, 4000),
+      Owner: row[1],
+      CashFlowImpact: row[2],
+      FollowUpRequired: row[3],
+      Comment: row[4]
+    }
+  };
+  await postListItem(token, listIds.decisions, body);
+}
+
+async function createRisk(token, meetingId, dateVal, row) {
+  if (!listIds.risks) return;
+  var body = {
+    fields: {
+      Title: row[0].substring(0, 255),
+      MeetingIdText: meetingId,
+      RiskText: row[0].substring(0, 4000),
+      Impact: row[1],
+      Owner: row[2],
+      NextStep: row[3]
+    }
+  };
+  await postListItem(token, listIds.risks, body);
+}
+
+async function postListItem(token, listId, body) {
+  var r = await fetch('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + listId + '/items', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  var d = await r.json();
+  if (!r.ok) throw new Error('SharePoint list error: ' + (d.error ? d.error.message : r.status));
+  return d;
+}
+
+function openCopyModal() {
+  document.getElementById('modal-title').textContent = 'Cash Flow Team — copy summary';
+  document.getElementById('output-text').value = buildOutput();
+  document.getElementById('modal').classList.add('active');
+  document.getElementById('copy-ok').classList.remove('show');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+function copyToClipboard() {
+  var ta = document.getElementById('output-text');
+  ta.select();
+  document.execCommand('copy');
+  document.getElementById('copy-ok').classList.add('show');
+}
+
+function resetForm() {
+  if (!confirm('Wyczyścić formularz i zacząć nową notatkę?')) return;
+  ['cashin-body','cashout-body','overdue-body','decisions-body','risks-body','actions-body'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '';
+  });
+  rowCounters = { cashin: 0, cashout: 0, overdue: 0, decisions: 0, risks: 0, actions: 0 };
+  ['cashin-count','cashout-count','overdue-count','decision-count','risk-count','action-count'].forEach(function(id) {
+    document.getElementById(id).textContent = '0';
+  });
+  ['meta-time','summary','polish-summary','erik-notes','next-date','next-time','next-focus'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('meta-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meta-attendees').value = 'Hubert, Karolina, Erik';
+  var saveBtn = document.getElementById('btn-save');
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Zapisz w SharePoint + Planner';
+  saveBtn.style.background = '';
+  saveBtn.style.borderColor = '';
+  saveBtn.style.color = '';
+  addCashIn(); addCashOut(); addOverdue(); addDecision(); addRisk(); addAction();
+}
+
+function switchTab(name) {
+  var tabs = document.querySelectorAll('.tab');
+  var names = ['new', 'archive', 'settings'];
+  tabs.forEach(function(t, i) { t.classList.toggle('active', names[i] === name); });
+  document.getElementById('panel-new').classList.toggle('active', name === 'new');
+  document.getElementById('panel-archive').classList.toggle('active', name === 'archive');
+  document.getElementById('panel-settings').classList.toggle('active', name === 'settings');
+  if (name === 'settings') updateConfigPreview();
+}
+
+function setStatus(type, msg) {
+  var dot = document.getElementById('status-dot');
+  if (dot) dot.className = 'status-dot ' + type;
+  var text = document.getElementById('status-text');
+  if (text) text.textContent = msg;
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.className = 'toast show toast-' + (type || 'info');
+  t.textContent = msg;
+  setTimeout(function() { t.className = 'toast'; }, 5000);
+}
+
+function fmtDate(val) {
+  if (!val) return '—';
+  var p = val.split('-');
+  if (p.length !== 3) return val;
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateConfigPreview() {
+  var el = document.getElementById('config-preview');
+  if (!el) return;
+  el.textContent =
+`CLIENT_ID: ${CLIENT_ID}
+TENANT_ID: ${TENANT_ID}
+SITE: https://${SITE_DOMAIN}${SITE_PATH}
+
+SharePoint lists:
+- ${LIST_MEETINGS}
+- ${LIST_NOTES}
+- ${LIST_ACTIONS}
+- ${LIST_DECISIONS}
+- ${LIST_RISKS}
+
+Planner:
+- PLANNER_PLAN_ID: ${PLANNER_PLAN_ID || '(empty)'}
+- PLANNER_BUCKET_TODO: ${PLANNER_BUCKET_TODO || '(empty)'}
+- PLANNER_GROUP_ID: ${PLANNER_GROUP_ID || '(empty)'}
+
+Team emails:
+${Object.keys(teamEmails).map(k => '- ' + k + ': ' + teamEmails[k]).join('\n')}`;
+}
+
+function debounceArchive() {
+  clearTimeout(archiveDebounce);
+  archiveDebounce = setTimeout(loadArchive, 500);
+}
+
+function clearFilters() {
+  document.getElementById('filter-date').value = '';
+  document.getElementById('filter-keyword').value = '';
+  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Wyszukaj notatki używając filtrów powyżej.</p>';
+  document.getElementById('archive-count').textContent = '';
+}
+
+async function loadArchive() {
+  if (!siteId || !listIds.notes) {
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Brak połączenia z SharePoint.</p>';
+    return;
+  }
+  var dateFilter = getValue('filter-date');
+  var keyword = getValue('filter-keyword').toLowerCase();
+
+  if (!dateFilter && !keyword) {
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Podaj datę albo słowo kluczowe.</p>';
+    return;
+  }
+
+  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Wczytywanie…</p>';
+
+  try {
+    var token = await getToken();
+    var url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + listIds.notes + '/items?$expand=fields&$top=500';
+    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    var d = await r.json();
+    var notes = (d.value || []).map(function(i) { return i.fields || {}; });
+
+    archiveData = notes.filter(function(n) {
+      var title = n.Title || '';
+      var dateOk = !dateFilter || title.indexOf(dateFilter) >= 0;
+      var hay = JSON.stringify(n).toLowerCase();
+      var keyOk = !keyword || hay.indexOf(keyword) >= 0;
+      return dateOk && keyOk;
+    }).sort(function(a,b) { return String(b.Title || '').localeCompare(String(a.Title || '')); });
+
+    renderArchive(archiveData);
+  } catch(e) {
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Błąd: ' + e.message + '</p>';
+  }
+}
+
+function renderArchive(data) {
+  var container = document.getElementById('archive-list');
+  document.getElementById('archive-count').textContent = data.length + ' notatek';
+  if (!data.length) {
+    container.innerHTML = '<p class="empty-hint">Brak wyników.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  data.forEach(function(n, idx) {
+    var card = document.createElement('div');
+    card.className = 'archive-card';
+    card.innerHTML =
+      '<div class="archive-card-header" onclick="toggleCard(this)">' +
+        '<div><div class="archive-card-date">' + escHtml(n.Title || 'Cash Flow Note') + '</div>' +
+        '<div class="archive-card-meta">' + escHtml((n.Summary || '').substring(0, 120)) + '</div></div>' +
+        '<div class="archive-card-meta">open</div>' +
+      '</div>' +
+      '<div class="archive-card-body"><div class="note-text">' + escHtml(n.NoteText || n.Summary || '(empty)') + '</div></div>';
+    container.appendChild(card);
+  });
+}
+
+function toggleCard(header) {
+  var body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function copyArchiveResults() {
+  var text = archiveData.map(function(n) {
+    return (n.Title || '') + '\n' + (n.NoteText || n.Summary || '') + '\n\n';
+  }).join('---\n');
+  document.getElementById('modal-title').textContent = 'Cash Flow Team — archive results';
+  document.getElementById('output-text').value = text || '(empty)';
+  document.getElementById('modal').classList.add('active');
+  document.getElementById('copy-ok').classList.remove('show');
+}
+
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
