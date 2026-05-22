@@ -190,7 +190,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.5</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.6</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -1078,6 +1078,15 @@ function renderImportedCashFlow() {
   document.getElementById('cashout-next7-table').innerHTML = buildMiniTable(co.next7, 'out');
 }
 
+
+function formatDateLocal(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '—';
+  var day = String(date.getDate()).padStart(2, '0');
+  var month = String(date.getMonth() + 1).padStart(2, '0');
+  var year = date.getFullYear();
+  return day + '.' + month + '.' + year;
+}
+
 function buildMiniTable(items, direction) {
   if (!items.length) return '<p class="empty-hint">No items due in the next 7 days.</p>';
 
@@ -1087,8 +1096,8 @@ function buildMiniTable(items, direction) {
       return '<tr>' +
         '<td>' + escHtml(i.contractor) + '</td>' +
         '<td>' + escHtml(i.document) + '</td>' +
-        '<td>' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + '</td>' +
-        '<td><strong>' + fmtDate(i.dueDate.toISOString().slice(0,10)) + '</strong></td>' +
+        '<td>' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + '</td>' +
+        '<td><strong>' + formatDateLocal(i.dueDate) + '</strong></td>' +
         '<td class="' + (direction === 'in' ? 'amount-pos' : 'amount-neg') + '">' + formatMoney(i.amount) + '</td>' +
       '</tr>';
     }).join('');
@@ -1125,7 +1134,7 @@ function importedCashFlowText() {
       lines.push('(empty)');
     } else {
       items.sort(function(a, b) { return a.dueDate - b.dueDate; }).forEach(function(i, idx) {
-        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + ' | payment due date: ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
+        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + ' | payment due date: ' + formatDateLocal(i.dueDate) + ' | ' + formatMoney(i.amount));
       });
     }
     lines.push('');
