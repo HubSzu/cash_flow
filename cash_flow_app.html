@@ -192,7 +192,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.1</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.3</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -276,7 +276,7 @@
           </div>
         </div>
         <p class="import-note">
-          Aplikacja automatycznie wybiera najnowszy arkusz datowany, np. 22.05, a następnie liczy przeterminowane pozycje i pozycje z najbliższych 7 dni względem daty spotkania.
+          The app automatically uses the latest dated sheet that is not later than the meeting date, for example 22.05 for a 22.05 meeting. For date calculations, it uses the <strong>termin</strong> column as the payment due date. Dates are displayed without UTC conversion. The <strong>z dnia</strong> column is treated only as the invoice/document issue date. Amounts are read from <strong>brutto</strong> for receivables and from <strong>do zapłaty</strong> for payables.
         </p>
         <div id="import-status-box" class="import-note"></div>
       </div>
@@ -615,8 +615,8 @@ var PLANNER_GROUP_ID   = '0c12650e-4387-4a39-bcfe-5da8082623b2';
 
 var teamEmails = {
   'Hubert':   'h.szulc@structura360.com',
-  'Karolina': 'ADD_KAROLINA_EMAIL',
-  'Erik':     'ADD_ERIK_EMAIL'
+  'Karolina': 'k.cegielska-szulc@structura360.com',
+  'Erik':     'e.blankenvoorde@structura360.com'
 };
 var teamMembers = Object.keys(teamEmails);
 var teamUserIds = {};
