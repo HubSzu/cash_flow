@@ -176,39 +176,39 @@
   <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
-    <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Zaloguj</button>
-    <button class="btn btn-outline" id="btn-logout" onclick="signOut()" style="display:none">Wyloguj</button>
+    <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
+    <button class="btn btn-outline" id="btn-logout" onclick="signOut()" style="display:none">Sign out</button>
   </div>
 </div>
 
 <div class="status-bar">
   <div class="status-dot" id="status-dot"></div>
-  <span class="status-text" id="status-text">Łączenie z Microsoft 365…</span>
+  <span class="status-text" id="status-text">Connecting to Microsoft 365…</span>
 </div>
 
 <div class="tabs" id="main-tabs" style="display:none">
-  <div class="tab active" onclick="switchTab('new')">Nowe spotkanie</div>
-  <div class="tab" onclick="switchTab('archive')">Archiwum</div>
-  <div class="tab" onclick="switchTab('settings')">Konfiguracja</div>
+  <div class="tab active" onclick="switchTab('new')">New meeting</div>
+  <div class="tab" onclick="switchTab('archive')">Archive</div>
+  <div class="tab" onclick="switchTab('settings')">Configuration</div>
 </div>
 
 <div class="container">
 
   <div id="login-screen" class="login-screen" style="display:none">
-    <h2>Zaloguj się</h2>
-    <p>Aby korzystać z aplikacji Cash Flow Team, zaloguj się kontem Microsoft 365.</p>
-    <button class="btn btn-primary" onclick="signIn()" style="width:100%;justify-content:center;padding:12px">Zaloguj przez Microsoft 365</button>
+    <h2>Sign in</h2>
+    <p>Sign in with your Microsoft 365 account to use the Cash Flow Team app.</p>
+    <button class="btn btn-primary" onclick="signIn()" style="width:100%;justify-content:center;padding:12px">Sign in with Microsoft 365</button>
   </div>
 
   <div class="tab-panel active" id="panel-new">
 
     <div class="meta-bar">
       <div class="meta-field">
-        <label>Data spotkania</label>
+        <label>Meeting date</label>
         <input type="date" id="meta-date">
       </div>
       <div class="meta-field">
-        <label>Godzina</label>
+        <label>Time</label>
         <input type="text" id="meta-time" placeholder="09:00 – 10:00">
       </div>
       <div class="meta-field">
@@ -237,11 +237,11 @@
       <div class="section-body">
         <div class="import-grid">
           <div>
-            <label class="tiny-label">Receivables / Należności Excel</label>
+            <label class="tiny-label">Receivables Excel</label>
             <input type="file" id="receivables-file" class="field" accept=".xlsx,.xls">
           </div>
           <div>
-            <label class="tiny-label">Payables / Zobowiązania Excel</label>
+            <label class="tiny-label">Payables Excel</label>
             <input type="file" id="payables-file" class="field" accept=".xlsx,.xls">
           </div>
           <div>
@@ -249,8 +249,9 @@
           </div>
         </div>
         <p class="import-note">
-          The app automatically uses the latest dated sheet, for example 22.05. For calculations, it uses the <strong>termin</strong> column as the payment due date. The <strong>z dnia</strong> column is treated only as the invoice/document issue date.
+          Aplikacja automatycznie wybiera najnowszy arkusz datowany, np. 22.05, a następnie liczy przeterminowane pozycje i pozycje z najbliższych 7 dni względem daty spotkania.
         </p>
+        <div class="import-note">Your browser may display the file picker button in your local language. The app itself uses English labels.</div>
         <div id="import-status-box" class="import-note"></div>
       </div>
     </div>
@@ -448,7 +449,7 @@
         <div class="grid-2">
           <div>
             <label class="tiny-label">Polish support summary for Karolina</label>
-            <textarea class="notes-field" id="polish-summary" placeholder="Krótkie podsumowanie po polsku dla Karoliny..."></textarea>
+            <textarea class="notes-field" id="polish-summary" placeholder="Short Polish support summary for Karolina..."></textarea>
           </div>
           <div>
             <label class="tiny-label">Notes for Erik</label>
@@ -479,9 +480,9 @@
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="resetForm()">Nowa notatka</button>
-      <button class="btn btn-ghost" onclick="openCopyModal()">Kopiuj podsumowanie</button>
-      <button class="btn btn-primary" id="btn-save" onclick="saveToSharePoint()">Zapisz w SharePoint + Planner</button>
+      <button class="btn btn-ghost" onclick="resetForm()">New note</button>
+      <button class="btn btn-ghost" onclick="openCopyModal()">Copy summary</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveToSharePoint()">Save to SharePoint + Planner</button>
     </div>
 
   </div>
@@ -489,37 +490,36 @@
   <div class="tab-panel" id="panel-archive">
     <div class="archive-controls">
       <div class="filter-field">
-        <label>Filtruj po dacie</label>
+        <label>Filter by date</label>
         <input type="date" id="filter-date" oninput="loadArchive()">
       </div>
       <div class="filter-field">
-        <label>Filtruj po słowie / kliencie</label>
-        <input type="text" id="filter-keyword" placeholder="np. klient, supplier, cash in" oninput="debounceArchive()">
+        <label>Filter by keyword / client</label>
+        <input type="text" id="filter-keyword" placeholder="e.g. client, supplier, cash in" oninput="debounceArchive()">
       </div>
       <div>
-        <button class="btn btn-ghost" onclick="clearFilters()">Wyczyść filtry</button>
+        <button class="btn btn-ghost" onclick="clearFilters()">Clear filters</button>
       </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <span id="archive-count" style="font-size:12px;color:var(--text-muted)"></span>
-      <button class="btn btn-success" onclick="copyArchiveResults()">Kopiuj wyniki</button>
+      <button class="btn btn-success" onclick="copyArchiveResults()">Copy results</button>
     </div>
 
     <div id="archive-list">
-      <p class="empty-hint">Wyszukaj notatki używając filtrów powyżej.</p>
+      <p class="empty-hint">Search notes using the filters above.</p>
     </div>
   </div>
 
   <div class="tab-panel" id="panel-settings">
     <div class="section">
       <div class="section-header">
-        <div class="section-title">Konfiguracja aplikacji</div>
+        <div class="section-title">Configuration aplikacji</div>
       </div>
       <div class="section-body">
         <p class="hint">
-          Ta wersja jest oddzielną aplikacją dla Cash Flow Team. Przed produkcyjnym użyciem trzeba uzupełnić:
-          adres witryny SharePoint, nazwy list i ID Plannera. Stałe są w sekcji CONFIG w kodzie JS.
+          This version is a separate application for the Cash Flow Team. Before production use, complete the SharePoint site address, list names and Planner IDs. Constants are in the CONFIG section of the JS code.
         </p>
         <br>
         <pre id="config-preview" style="white-space:pre-wrap;background:#052e22;color:#d1fae5;border-radius:8px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.6"></pre>
@@ -539,9 +539,9 @@
       <textarea id="output-text" readonly></textarea>
     </div>
     <div class="modal-footer">
-      <span class="copy-success" id="copy-ok">✓ Skopiowano!</span>
-      <button class="btn btn-ghost" onclick="closeModal()">Zamknij</button>
-      <button class="btn btn-primary" onclick="copyToClipboard()">Kopiuj do schowka</button>
+      <span class="copy-success" id="copy-ok">✓ Copied!</span>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="copyToClipboard()">Copy to clipboard</button>
     </div>
   </div>
 </div>
@@ -553,7 +553,7 @@ var msalLoaded = false;
 var domReady = false;
 function tryInit() { if (msalLoaded && domReady) initAuth(); }
 function msalLoadError() {
-  setStatus('err', 'Błąd ładowania biblioteki logowania. Odśwież stronę.');
+  setStatus('err', 'Error loading the sign-in library. Refresh the page.');
   var btn = document.getElementById('btn-login'); if(btn) btn.style.display = '';
 }
 </script>
@@ -562,27 +562,27 @@ function msalLoadError() {
 
 <script>
 // =====================================================
-// CONFIG — UZUPEŁNIJ PRZED WDROŻENIEM
+// CONFIG — COMPLETE BEFORE DEPLOYMENT
 // =====================================================
-// Wzięte z aplikacji projektowej. Jeżeli używacie tej samej aplikacji Entra,
-// CLIENT_ID i TENANT_ID mogą zostać. Trzeba tylko dodać nowy Redirect URI
-// dla adresu GitHub Pages tej aplikacji.
+// Based on the project notes app. If you use the same Entra tenant,
+// TENANT_ID can stay the same. CLIENT_ID should be the Cash Flow app registration.
+// Add the GitHub Pages URL as a Redirect URI.
 var CLIENT_ID    = '6e544a6d-5cf0-4850-ad8c-91ba69816de9';
 var TENANT_ID    = '15833e17-ca6d-4f22-9660-00d7fb2cf351';
 
-// Zmień, jeżeli SharePoint nadał inny adres niż /sites/CashFlowTeam
+// Change this if SharePoint assigned a different URL than /sites/CashFlowTeam
 var SITE_DOMAIN  = 'adboard73.sharepoint.com';
 var SITE_PATH    = '/sites/CashFlowTeam';
 
-// Listy SharePoint na witrynie Cash Flow Team
+// SharePoint lists on the Cash Flow Team site
 var LIST_MEETINGS  = 'CF_Meetings';
 var LIST_NOTES     = 'CF_Notes';
 var LIST_ACTIONS   = 'CF_Actions';
 var LIST_DECISIONS = 'CF_Decisions';
 var LIST_RISKS     = 'CF_Risks';
 
-// Planner — wpisz wartości po utworzeniu osobnego planu Cash Flow Team Tasks.
-// Jeżeli zostawisz puste, aplikacja zapisze zadania tylko do SharePoint.
+// Planner — fill these values after creating a separate Cash Flow Team Tasks plan.
+// If left empty, the app will save tasks only to SharePoint.
 var PLANNER_PLAN_ID    = '';
 var PLANNER_BUCKET_TODO = '';
 var PLANNER_GROUP_ID   = '';
@@ -652,7 +652,7 @@ async function initAuth() {
     currentAccount = accounts[0];
     onLoggedIn();
   } else {
-    setStatus('err', 'Niezalogowany — kliknij Zaloguj aby kontynuować');
+    setStatus('err', 'Not signed in — click Sign in to continue');
     document.getElementById('btn-login').style.display = '';
     document.getElementById('login-screen').style.display = '';
   }
@@ -670,7 +670,7 @@ async function onLoggedIn() {
   document.getElementById('user-name').textContent = fullName;
   var scribeEl = document.getElementById('meta-scribe');
   if (scribeEl && !scribeEl.value) scribeEl.value = fullName;
-  setStatus('loading', 'Łączenie z SharePoint Cash Flow Team…');
+  setStatus('loading', 'Connecting to SharePoint Cash Flow Team…');
   await loadSharePointContext();
 }
 
@@ -699,12 +699,12 @@ async function loadSharePointContext() {
     var missing = [];
     Object.keys(listIds).forEach(function(k) { if (!listIds[k]) missing.push(k); });
     if (missing.length) {
-      setStatus('err', 'Połączono z witryną, ale brakuje list: ' + missing.join(', ') + '. Utwórz je w SharePoint.');
+      setStatus('err', 'Connected to the site, but missing lists: ' + missing.join(', ') + '. Create them in SharePoint.');
     } else {
-      setStatus('ok', 'Połączono z SharePoint — Cash Flow Team');
+      setStatus('ok', 'Connected to SharePoint — Cash Flow Team');
     }
   } catch(e) {
-    setStatus('err', 'Błąd połączenia z SharePoint: ' + e.message);
+    setStatus('err', 'SharePoint connection error: ' + e.message);
   }
 }
 
@@ -712,7 +712,7 @@ async function getSiteId(token) {
   var r = await fetch('https://graph.microsoft.com/v1.0/sites/' + SITE_DOMAIN + ':' + SITE_PATH, {
     headers: { Authorization: 'Bearer ' + token }
   });
-  if (!r.ok) throw new Error('Nie znaleziono witryny ' + SITE_DOMAIN + ':' + SITE_PATH);
+  if (!r.ok) throw new Error('SharePoint site not found ' + SITE_DOMAIN + ':' + SITE_PATH);
   var d = await r.json();
   return d.id;
 }
@@ -879,13 +879,17 @@ function parseCashFlowWorkbook(workbook, type, meetingDate) {
   var cContractor = idx('kontrahent');
   var cDoc = idx('dokument');
 
-  // IMPORTANT:
   // "z dnia" = invoice/document issue date
   // "termin" = payment due date used for overdue and next-7-days calculations
   var cIssueDate = idx('z dnia');
   var cDue = idx('termin');
 
-  var cAmount = idx('do zaplaty');
+  // Amount source depends on file type:
+  // Receivables / CashIn: use "brutto"
+  // Payables / CashOut: use "do zapłaty", because some payables may be partially paid.
+  var amountColumnLabel = type === 'CashIn' ? 'brutto' : 'do zaplaty';
+  var cAmount = idx(amountColumnLabel);
+
   var cWeek = idx('week');
   var cCurrency = idx('waluta');
 
@@ -893,7 +897,7 @@ function parseCashFlowWorkbook(workbook, type, meetingDate) {
     throw new Error('Column "termin" was not found in sheet ' + newestSheet + '. This column is required as the payment due date.');
   }
   if (cAmount < 0) {
-    throw new Error('Column "do zaplaty" was not found in sheet ' + newestSheet + '.');
+    throw new Error('Column "' + amountColumnLabel + '" was not found in sheet ' + newestSheet + '.');
   }
 
   var items = [];
@@ -901,9 +905,8 @@ function parseCashFlowWorkbook(workbook, type, meetingDate) {
     var row = rows[r];
     var contractor = row[cContractor];
     var doc = row[cDoc];
-
     var issueDate = cIssueDate >= 0 ? excelDateToJSDate(row[cIssueDate]) : null;
-    var dueDate = excelDateToJSDate(row[cDue]); // payment due date from "termin"
+    var dueDate = excelDateToJSDate(row[cDue]);
     var amount = parseAmount(row[cAmount]);
 
     if (!contractor && !doc && !amount) continue;
@@ -1019,14 +1022,14 @@ function renderImportedCashFlow() {
   netEl.className = 'kpi-value ' + (net >= 0 ? 'amount-pos' : 'amount-neg');
 
   document.getElementById('kpi-source-sheets').textContent =
-    'Sheets: receivables ' + importedCashFlow.receivables.sheetName + ', payables ' + importedCashFlow.payables.sheetName;
+    'Sheets: receivables ' + importedCashFlow.receivables.sheetName + ', zobowiązania ' + importedCashFlow.payables.sheetName;
 
   document.getElementById('cashin-next7-table').innerHTML = buildMiniTable(ci.next7, 'in');
   document.getElementById('cashout-next7-table').innerHTML = buildMiniTable(co.next7, 'out');
 }
 
 function buildMiniTable(items, direction) {
-  if (!items.length) return '<p class="empty-hint">Brak items due in the next 7 days.</p>';
+  if (!items.length) return '<p class="empty-hint">No items due in the next 7 days.</p>';
 
   var rows = items
     .sort(function(a, b) { return a.dueDate - b.dueDate; })
@@ -1041,7 +1044,7 @@ function buildMiniTable(items, direction) {
     }).join('');
 
   return '<table class="mini-table">' +
-    '<thead><tr><th>Counterparty</th><th>Document</th><th>Issue date</th><th>Payment due date</th><th>Amount due</th></tr></thead>' +
+    '<thead><tr><th>Counterparty</th><th>Document</th><th>Issue date</th><th>Payment due date</th><th>Amount</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>';
 }
 
@@ -1072,7 +1075,7 @@ function importedCashFlowText() {
       lines.push('(empty)');
     } else {
       items.sort(function(a, b) { return a.dueDate - b.dueDate; }).forEach(function(i, idx) {
-        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | z dnia: ' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + ' | termin płatności: ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
+        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + ' | payment due date: ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
       });
     }
     lines.push('');
@@ -1258,15 +1261,15 @@ function addSection(lines, title, headers, rows, dateIndexes) {
 
 async function saveToSharePoint() {
   if (!siteId || !listIds.meetings || !listIds.notes) {
-    showToast('Brak połączenia z SharePoint albo brakuje wymaganych list.', 'error');
+    showToast('No SharePoint connection or required lists are missing.', 'error');
     return;
   }
   var dateVal = getValue('meta-date');
-  if (!dateVal) { showToast('Podaj datę spotkania.', 'error'); return; }
+  if (!dateVal) { showToast('Enter the meeting date.', 'error'); return; }
 
   var btn = document.getElementById('btn-save');
   btn.disabled = true;
-  btn.textContent = 'Zapisywanie…';
+  btn.textContent = 'Saving…';
 
   try {
     var token = await getToken();
@@ -1300,21 +1303,21 @@ async function saveToSharePoint() {
       await createAction(token, meetingId, dateVal, row, plannerSuccess);
     }
 
-    var msg = 'Zapisano spotkanie w SharePoint';
+    var msg = 'Meeting saved to SharePoint';
     if (plannerOk) msg += ' • Planner: ' + plannerOk;
-    if (!PLANNER_PLAN_ID) msg += ' • Planner pominięty, brak PLAN_ID';
-    if (plannerFail) msg += ' • błędy Plannera: ' + plannerFail;
+    if (!PLANNER_PLAN_ID) msg += ' • Planner skipped, PLAN_ID is empty';
+    if (plannerFail) msg += ' • Planner errors: ' + plannerFail;
 
     showToast(msg, plannerFail ? 'error' : 'success');
     btn.disabled = true;
-    btn.textContent = '✓ Zapisano';
+    btn.textContent = '✓ Saved';
     btn.style.background = '#dcfce7';
     btn.style.borderColor = '#86efac';
     btn.style.color = '#166534';
   } catch(e) {
-    showToast('Błąd zapisu: ' + e.message, 'error');
+    showToast('Save error: ' + e.message, 'error');
     btn.disabled = false;
-    btn.textContent = 'Zapisz w SharePoint + Planner';
+    btn.textContent = 'Save to SharePoint + Planner';
   }
 }
 
@@ -1424,7 +1427,7 @@ function copyToClipboard() {
 }
 
 function resetForm() {
-  if (!confirm('Wyczyścić formularz i zacząć nową notatkę?')) return;
+  if (!confirm('Clear the form and start a new note?')) return;
   ['cashin-body','cashout-body','overdue-body','decisions-body','risks-body','actions-body'].forEach(function(id) {
     document.getElementById(id).innerHTML = '';
   });
@@ -1439,7 +1442,7 @@ function resetForm() {
   document.getElementById('meta-attendees').value = 'Hubert, Karolina, Erik';
   var saveBtn = document.getElementById('btn-save');
   saveBtn.disabled = false;
-  saveBtn.textContent = 'Zapisz w SharePoint + Planner';
+  saveBtn.textContent = 'Save to SharePoint + Planner';
   saveBtn.style.background = '';
   saveBtn.style.borderColor = '';
   saveBtn.style.color = '';
@@ -1513,24 +1516,24 @@ function debounceArchive() {
 function clearFilters() {
   document.getElementById('filter-date').value = '';
   document.getElementById('filter-keyword').value = '';
-  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Wyszukaj notatki używając filtrów powyżej.</p>';
+  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Search notes using the filters above.</p>';
   document.getElementById('archive-count').textContent = '';
 }
 
 async function loadArchive() {
   if (!siteId || !listIds.notes) {
-    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Brak połączenia z SharePoint.</p>';
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">No SharePoint connection.</p>';
     return;
   }
   var dateFilter = getValue('filter-date');
   var keyword = getValue('filter-keyword').toLowerCase();
 
   if (!dateFilter && !keyword) {
-    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Podaj datę albo słowo kluczowe.</p>';
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Enter a date or keyword.</p>';
     return;
   }
 
-  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Wczytywanie…</p>';
+  document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Loading…</p>';
 
   try {
     var token = await getToken();
@@ -1549,15 +1552,15 @@ async function loadArchive() {
 
     renderArchive(archiveData);
   } catch(e) {
-    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Błąd: ' + e.message + '</p>';
+    document.getElementById('archive-list').innerHTML = '<p class="empty-hint">Error: ' + e.message + '</p>';
   }
 }
 
 function renderArchive(data) {
   var container = document.getElementById('archive-list');
-  document.getElementById('archive-count').textContent = data.length + ' notatek';
+  document.getElementById('archive-count').textContent = data.length + ' notes';
   if (!data.length) {
-    container.innerHTML = '<p class="empty-hint">Brak wyników.</p>';
+    container.innerHTML = '<p class="empty-hint">No results.</p>';
     return;
   }
   container.innerHTML = '';
