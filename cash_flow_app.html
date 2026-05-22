@@ -192,7 +192,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.3</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.4</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -276,7 +276,7 @@
           </div>
         </div>
         <p class="import-note">
-          The app automatically uses the latest dated sheet that is not later than the meeting date, for example 22.05 for a 22.05 meeting. For date calculations, it uses the <strong>termin</strong> column as the payment due date. Dates are displayed without UTC conversion. The <strong>z dnia</strong> column is treated only as the invoice/document issue date. Amounts are read from <strong>brutto</strong> for receivables and from <strong>do zapłaty</strong> for payables.
+          The app automatically uses the latest dated sheet that is not later than the meeting date. It splits overdue and next-7-days items using the visible Reference date. For date calculations, it uses the <strong>termin</strong> column as the payment due date. Dates are displayed without UTC conversion. The <strong>z dnia</strong> column is treated only as the invoice/document issue date. Amounts are read from <strong>brutto</strong> for receivables and from <strong>do zapłaty</strong> for payables.
         </p>
         <div id="import-status-box" class="import-note"></div>
       </div>
@@ -656,7 +656,7 @@ var archiveData = [];
 var archiveDebounce = null;
 
 window.onload = function() {
-  document.getElementById('meta-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meta-date').value = localTodayISO();
   document.getElementById('meta-scribe').value = 'Hubert';
   addCashIn();
   addCashOut();
@@ -994,16 +994,21 @@ function stripTime(date) {
 }
 
 function summarizeCashFlow(receivables, payables, meetingDate) {
-  var today = stripTime(meetingDate);
+  var today = stripTime(meetingDate || new Date());
   var weekEnd = new Date(today);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
   function split(items) {
-    var overdue = items.filter(function(i) { return stripTime(i.dueDate) < today; });
+    var overdue = items.filter(function(i) {
+      var d = stripTime(i.dueDate);
+      return d < today;
+    });
+
     var next7 = items.filter(function(i) {
       var d = stripTime(i.dueDate);
       return d >= today && d <= weekEnd;
     });
+
     return {
       overdue: overdue,
       next7: next7,
@@ -1013,6 +1018,8 @@ function summarizeCashFlow(receivables, payables, meetingDate) {
   }
 
   return {
+    referenceDate: today,
+    weekEnd: weekEnd,
     receivables: receivables,
     payables: payables,
     cashIn: split(receivables.items),
@@ -1024,7 +1031,7 @@ async function analyzeCashFlowFiles() {
   var status = document.getElementById('import-status-box');
   try {
     var meetingVal = getValue('meta-date');
-    var meetingDate = meetingVal ? new Date(meetingVal + 'T00:00:00') : new Date();
+    var meetingDate = meetingVal ? parseISODateLocal(meetingVal) : parseISODateLocal(localTodayISO());
 
     var recWb = await readWorkbookFromInput('receivables-file');
     var payWb = await readWorkbookFromInput('payables-file');
@@ -1077,7 +1084,9 @@ function renderImportedCashFlow() {
   netEl.className = 'kpi-value ' + (net >= 0 ? 'amount-pos' : 'amount-neg');
 
   document.getElementById('kpi-source-sheets').textContent =
-    'Sheets: receivables ' + importedCashFlow.receivables.sheetName + ', payables ' + importedCashFlow.payables.sheetName;
+    'Reference date: ' + formatDateLocal(importedCashFlow.referenceDate) +
+    ' | Sheets: receivables ' + importedCashFlow.receivables.sheetName +
+    ', payables ' + importedCashFlow.payables.sheetName;
 
   document.getElementById('cashin-next7-table').innerHTML = buildMiniTable(ci.next7, 'in');
   document.getElementById('cashout-next7-table').innerHTML = buildMiniTable(co.next7, 'out');
@@ -1111,6 +1120,7 @@ function importedCashFlowText() {
   var lines = [];
   lines.push('IMPORTED CASH FLOW DASHBOARD');
   lines.push('─'.repeat(64));
+  lines.push('Reference date: ' + formatDateLocal(importedCashFlow.referenceDate));
   lines.push('Source sheets: receivables ' + importedCashFlow.receivables.sheetName + ', payables ' + importedCashFlow.payables.sheetName);
   lines.push('');
   lines.push('Cash in');
@@ -1541,7 +1551,7 @@ function resetForm() {
   ['meta-time','summary','polish-summary','erik-notes','next-date','next-time','next-focus'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('meta-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meta-date').value = localTodayISO();
   document.getElementById('meta-attendees').value = 'Hubert, Karolina, Erik';
   var saveBtn = document.getElementById('btn-save');
   saveBtn.disabled = false;
@@ -1574,6 +1584,21 @@ function showToast(msg, type) {
   t.className = 'toast show toast-' + (type || 'info');
   t.textContent = msg;
   setTimeout(function() { t.className = 'toast'; }, 5000);
+}
+
+function localTodayISO() {
+  var d = new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function parseISODateLocal(value) {
+  var s = String(value || '').trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
 function fmtDate(val) {
