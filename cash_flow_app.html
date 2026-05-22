@@ -192,7 +192,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.4</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.5</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -276,7 +276,7 @@
           </div>
         </div>
         <p class="import-note">
-          The app automatically uses the latest dated sheet that is not later than the meeting date. It splits overdue and next-7-days items using the visible Reference date. For date calculations, it uses the <strong>termin</strong> column as the payment due date. Dates are displayed without UTC conversion. The <strong>z dnia</strong> column is treated only as the invoice/document issue date. Amounts are read from <strong>brutto</strong> for receivables and from <strong>do zapłaty</strong> for payables.
+          The app automatically uses the latest dated sheet that is not later than the meeting date. Overdue means payment due date before the Reference date. Next 7 days means payment due date from the Reference date through Reference date + 7 days. The app uses <strong>termin</strong> as payment due date, <strong>z dnia</strong> as issue date, <strong>brutto</strong> for receivables amounts and <strong>do zapłaty</strong> for payables amounts.
         </p>
         <div id="import-status-box" class="import-note"></div>
       </div>
@@ -1000,8 +1000,7 @@ function summarizeCashFlow(receivables, payables, meetingDate) {
 
   function split(items) {
     var overdue = items.filter(function(i) {
-      var d = stripTime(i.dueDate);
-      return d < today;
+      return stripTime(i.dueDate) < today;
     });
 
     var next7 = items.filter(function(i) {
@@ -1101,8 +1100,8 @@ function buildMiniTable(items, direction) {
       return '<tr>' +
         '<td>' + escHtml(i.contractor) + '</td>' +
         '<td>' + escHtml(i.document) + '</td>' +
-        '<td>' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + '</td>' +
-        '<td><strong>' + fmtDate(i.dueDate.toISOString().slice(0,10)) + '</strong></td>' +
+        '<td>' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + '</td>' +
+        '<td><strong>' + formatDateLocal(i.dueDate) + '</strong></td>' +
         '<td class="' + (direction === 'in' ? 'amount-pos' : 'amount-neg') + '">' + formatMoney(i.amount) + '</td>' +
       '</tr>';
     }).join('');
@@ -1140,7 +1139,7 @@ function importedCashFlowText() {
       lines.push('(empty)');
     } else {
       items.sort(function(a, b) { return a.dueDate - b.dueDate; }).forEach(function(i, idx) {
-        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + ' | payment due date: ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
+        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + ' | payment due date: ' + formatDateLocal(i.dueDate) + ' | ' + formatMoney(i.amount));
       });
     }
     lines.push('');
@@ -1599,6 +1598,14 @@ function parseISODateLocal(value) {
   var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+function formatDateLocal(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '—';
+  var day = String(date.getDate()).padStart(2, '0');
+  var month = String(date.getMonth() + 1).padStart(2, '0');
+  var year = date.getFullYear();
+  return day + '.' + month + '.' + year;
 }
 
 function fmtDate(val) {
