@@ -105,6 +105,22 @@
   .empty-hint { text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px; font-style: italic; }
   .hint { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
 
+  .import-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .kpi-card { background: #f0fdf4; border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 14px; }
+  .kpi-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); margin-bottom: 6px; }
+  .kpi-value { font-size: 20px; font-weight: 700; color: var(--text); }
+  .kpi-small { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .import-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .mini-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .mini-table th { font-size: 10px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 6px; text-align: left; border-bottom: 1px solid var(--border); }
+  .mini-table td { font-size: 12px; padding: 6px; border-bottom: 1px solid #e5f7ee; vertical-align: top; }
+  .amount-pos { color: var(--cash-positive); font-weight: 700; }
+  .amount-neg { color: var(--cash-negative); font-weight: 700; }
+  @media (max-width: 900px) {
+    .import-grid, .kpi-grid { grid-template-columns: 1fr; }
+  }
+
   .cash-flow-mark {
     display: inline-flex;
     align-items: center;
@@ -211,6 +227,73 @@
       </div>
       <div class="section-body">
         <textarea class="notes-field" id="summary" placeholder="Short summary in simple English. Example: This week we focus on overdue invoices, expected supplier payments and cash risks for the next 14 days."></textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Import cash flow files</div>
+      </div>
+      <div class="section-body">
+        <div class="import-grid">
+          <div>
+            <label class="tiny-label">Receivables / Należności Excel</label>
+            <input type="file" id="receivables-file" class="field" accept=".xlsx,.xls">
+          </div>
+          <div>
+            <label class="tiny-label">Payables / Zobowiązania Excel</label>
+            <input type="file" id="payables-file" class="field" accept=".xlsx,.xls">
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="analyzeCashFlowFiles()">Analyze files</button>
+          </div>
+        </div>
+        <p class="import-note">
+          Aplikacja automatycznie wybiera najnowszy arkusz datowany, np. 22.05, a następnie liczy przeterminowane pozycje i pozycje z najbliższych 7 dni względem daty spotkania.
+        </p>
+        <div id="import-status-box" class="import-note"></div>
+      </div>
+    </div>
+
+    <div class="section" id="cashflow-dashboard-section" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Imported cash flow dashboard</div>
+      </div>
+      <div class="section-body">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Overdue cash in</div>
+            <div class="kpi-value amount-pos" id="kpi-overdue-in">—</div>
+            <div class="kpi-small" id="kpi-overdue-in-count">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Next 7 days cash in</div>
+            <div class="kpi-value amount-pos" id="kpi-week-in">—</div>
+            <div class="kpi-small" id="kpi-week-in-count">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Overdue cash out</div>
+            <div class="kpi-value amount-neg" id="kpi-overdue-out">—</div>
+            <div class="kpi-small" id="kpi-overdue-out-count">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Next 7 days cash out</div>
+            <div class="kpi-value amount-neg" id="kpi-week-out">—</div>
+            <div class="kpi-small" id="kpi-week-out-count">—</div>
+          </div>
+        </div>
+
+        <div class="kpi-card" style="margin-bottom:16px">
+          <div class="kpi-label">Net next 7 days</div>
+          <div class="kpi-value" id="kpi-net-week">—</div>
+          <div class="kpi-small" id="kpi-source-sheets">—</div>
+        </div>
+
+        <h4 style="margin:12px 0 6px">Expected cash in — next 7 days</h4>
+        <div id="cashin-next7-table"></div>
+
+        <h4 style="margin:18px 0 6px">Expected cash out — next 7 days</h4>
+        <div id="cashout-next7-table"></div>
       </div>
     </div>
 
@@ -475,6 +558,7 @@ function msalLoadError() {
 }
 </script>
 <script src="https://unpkg.com/@azure/msal-browser@3.28.1/lib/msal-browser.min.js" onload="msalLoaded=true;tryInit()" onerror="msalLoadError()"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
 // =====================================================
@@ -541,6 +625,7 @@ var listIds = {
 };
 
 var rowCounters = { cashin: 0, cashout: 0, overdue: 0, decisions: 0, risks: 0, actions: 0 };
+var importedCashFlow = null;
 var archiveData = [];
 var archiveDebounce = null;
 
@@ -694,6 +779,294 @@ async function createPlannerTask(token, taskTitle, assigneeName, dueDate, impact
   return await r.json();
 }
 
+
+function normalizeHeader(value) {
+  return String(value || '').toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, function(ch) {
+      return { 'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z' }[ch] || ch;
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseSheetDate(name, meetingYear) {
+  var s = String(name || '').trim();
+  var m = s.match(/^(\d{1,2})[.\-_\/](\d{1,2})(?:[.\-_\/](\d{2,4}))?$/);
+  if (!m) return null;
+  var day = Number(m[1]);
+  var month = Number(m[2]);
+  var year = m[3] ? Number(m[3]) : meetingYear;
+  if (year < 100) year += 2000;
+  if (!day || !month || !year) return null;
+  return new Date(year, month - 1, day);
+}
+
+function findNewestSheetName(workbook, meetingDate) {
+  var meetingYear = meetingDate ? meetingDate.getFullYear() : new Date().getFullYear();
+  var candidates = workbook.SheetNames.map(function(name, idx) {
+    return { name: name, idx: idx, date: parseSheetDate(name, meetingYear) };
+  }).filter(function(x) { return x.date instanceof Date && !isNaN(x.date); });
+
+  if (candidates.length === 0) {
+    return workbook.SheetNames[workbook.SheetNames.length - 1];
+  }
+
+  candidates.sort(function(a, b) {
+    return b.date - a.date || b.idx - a.idx;
+  });
+  return candidates[0].name;
+}
+
+function excelDateToJSDate(value) {
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') {
+    var parsed = XLSX.SSF.parse_date_code(value);
+    if (parsed) return new Date(parsed.y, parsed.m - 1, parsed.d);
+  }
+  var s = String(value || '').trim();
+  if (!s) return null;
+
+  var m = s.match(/^(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?$/);
+  if (m) {
+    var day = Number(m[1]);
+    var month = Number(m[2]);
+    var year = m[3] ? Number(m[3]) : new Date().getFullYear();
+    if (year < 100) year += 2000;
+    return new Date(year, month - 1, day);
+  }
+
+  var iso = new Date(s);
+  if (!isNaN(iso)) return iso;
+  return null;
+}
+
+function parseAmount(value) {
+  if (typeof value === 'number') return value;
+  var s = String(value || '').trim();
+  if (!s) return 0;
+  s = s.replace(/\s/g, '').replace(/PLN/gi, '').replace(/zł/gi, '');
+  if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.indexOf(',') >= 0) {
+    s = s.replace(',', '.');
+  }
+  var n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function findHeaderRow(rows) {
+  for (var i = 0; i < Math.min(rows.length, 30); i++) {
+    var normalized = rows[i].map(normalizeHeader);
+    var hasContractor = normalized.indexOf('kontrahent') >= 0;
+    var hasDoc = normalized.indexOf('dokument') >= 0;
+    var hasDue = normalized.indexOf('termin') >= 0;
+    var hasPay = normalized.indexOf('do zaplaty') >= 0;
+    if (hasContractor && hasDoc && hasDue && hasPay) return i;
+  }
+  return -1;
+}
+
+function parseCashFlowWorkbook(workbook, type, meetingDate) {
+  var newestSheet = findNewestSheetName(workbook, meetingDate);
+  var sheet = workbook.Sheets[newestSheet];
+  var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+  var headerIndex = findHeaderRow(rows);
+  if (headerIndex < 0) throw new Error('Nie znaleziono nagłówków w arkuszu ' + newestSheet);
+
+  var headers = rows[headerIndex].map(normalizeHeader);
+  function idx(name) { return headers.indexOf(name); }
+
+  var cContractor = idx('kontrahent');
+  var cDoc = idx('dokument');
+  var cDue = idx('termin');
+  var cAmount = idx('do zaplaty');
+  var cWeek = idx('week');
+  var cCurrency = idx('waluta');
+
+  var items = [];
+  for (var r = headerIndex + 1; r < rows.length; r++) {
+    var row = rows[r];
+    var contractor = row[cContractor];
+    var doc = row[cDoc];
+    var dueDate = excelDateToJSDate(row[cDue]);
+    var amount = parseAmount(row[cAmount]);
+
+    if (!contractor && !doc && !amount) continue;
+    if (!dueDate || !amount) continue;
+
+    items.push({
+      type: type,
+      contractor: String(contractor || '').trim(),
+      document: String(doc || '').trim(),
+      dueDate: dueDate,
+      amount: amount,
+      week: cWeek >= 0 ? String(row[cWeek] || '').trim() : '',
+      currency: cCurrency >= 0 ? String(row[cCurrency] || 'PLN').trim() : 'PLN'
+    });
+  }
+
+  return { sheetName: newestSheet, items: items };
+}
+
+async function readWorkbookFromInput(inputId) {
+  var input = document.getElementById(inputId);
+  if (!input.files || !input.files[0]) return null;
+  var data = await input.files[0].arrayBuffer();
+  return XLSX.read(data, { cellDates: true });
+}
+
+function stripTime(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function summarizeCashFlow(receivables, payables, meetingDate) {
+  var today = stripTime(meetingDate);
+  var weekEnd = new Date(today);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  function split(items) {
+    var overdue = items.filter(function(i) { return stripTime(i.dueDate) < today; });
+    var next7 = items.filter(function(i) {
+      var d = stripTime(i.dueDate);
+      return d >= today && d <= weekEnd;
+    });
+    return {
+      overdue: overdue,
+      next7: next7,
+      overdueTotal: overdue.reduce(function(s, i) { return s + i.amount; }, 0),
+      next7Total: next7.reduce(function(s, i) { return s + i.amount; }, 0)
+    };
+  }
+
+  return {
+    receivables: receivables,
+    payables: payables,
+    cashIn: split(receivables.items),
+    cashOut: split(payables.items)
+  };
+}
+
+async function analyzeCashFlowFiles() {
+  var status = document.getElementById('import-status-box');
+  try {
+    var meetingVal = getValue('meta-date');
+    var meetingDate = meetingVal ? new Date(meetingVal + 'T00:00:00') : new Date();
+
+    var recWb = await readWorkbookFromInput('receivables-file');
+    var payWb = await readWorkbookFromInput('payables-file');
+
+    if (!recWb && !payWb) {
+      showToast('Wybierz przynajmniej jeden plik Excel.', 'error');
+      return;
+    }
+
+    var receivables = recWb ? parseCashFlowWorkbook(recWb, 'CashIn', meetingDate) : { sheetName: '—', items: [] };
+    var payables = payWb ? parseCashFlowWorkbook(payWb, 'CashOut', meetingDate) : { sheetName: '—', items: [] };
+
+    importedCashFlow = summarizeCashFlow(receivables, payables, meetingDate);
+    renderImportedCashFlow();
+
+    status.textContent = 'Zaimportowano dane. Należności: arkusz ' + receivables.sheetName + ', zobowiązania: arkusz ' + payables.sheetName + '.';
+    showToast('Import zakończony. Użyto najnowszych arkuszy.', 'success');
+  } catch(e) {
+    console.error(e);
+    importedCashFlow = null;
+    status.textContent = 'Błąd importu: ' + e.message;
+    showToast('Błąd importu: ' + e.message, 'error');
+  }
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 2 }).format(value || 0);
+}
+
+function renderImportedCashFlow() {
+  if (!importedCashFlow) return;
+  document.getElementById('cashflow-dashboard-section').style.display = '';
+
+  var ci = importedCashFlow.cashIn;
+  var co = importedCashFlow.cashOut;
+
+  document.getElementById('kpi-overdue-in').textContent = formatMoney(ci.overdueTotal);
+  document.getElementById('kpi-overdue-in-count').textContent = ci.overdue.length + ' pozycji przeterminowanych';
+  document.getElementById('kpi-week-in').textContent = formatMoney(ci.next7Total);
+  document.getElementById('kpi-week-in-count').textContent = ci.next7.length + ' pozycji w najbliższych 7 dniach';
+
+  document.getElementById('kpi-overdue-out').textContent = formatMoney(co.overdueTotal);
+  document.getElementById('kpi-overdue-out-count').textContent = co.overdue.length + ' pozycji przeterminowanych';
+  document.getElementById('kpi-week-out').textContent = formatMoney(co.next7Total);
+  document.getElementById('kpi-week-out-count').textContent = co.next7.length + ' pozycji w najbliższych 7 dniach';
+
+  var net = ci.next7Total - co.next7Total;
+  var netEl = document.getElementById('kpi-net-week');
+  netEl.textContent = formatMoney(net);
+  netEl.className = 'kpi-value ' + (net >= 0 ? 'amount-pos' : 'amount-neg');
+
+  document.getElementById('kpi-source-sheets').textContent =
+    'Arkusze: należności ' + importedCashFlow.receivables.sheetName + ', zobowiązania ' + importedCashFlow.payables.sheetName;
+
+  document.getElementById('cashin-next7-table').innerHTML = buildMiniTable(ci.next7, 'in');
+  document.getElementById('cashout-next7-table').innerHTML = buildMiniTable(co.next7, 'out');
+}
+
+function buildMiniTable(items, direction) {
+  if (!items.length) return '<p class="empty-hint">Brak pozycji w najbliższych 7 dniach.</p>';
+
+  var rows = items
+    .sort(function(a, b) { return a.dueDate - b.dueDate; })
+    .map(function(i) {
+      return '<tr>' +
+        '<td>' + escHtml(i.contractor) + '</td>' +
+        '<td>' + escHtml(i.document) + '</td>' +
+        '<td>' + fmtDate(i.dueDate.toISOString().slice(0,10)) + '</td>' +
+        '<td class="' + (direction === 'in' ? 'amount-pos' : 'amount-neg') + '">' + formatMoney(i.amount) + '</td>' +
+      '</tr>';
+    }).join('');
+
+  return '<table class="mini-table">' +
+    '<thead><tr><th>Kontrahent</th><th>Dokument</th><th>Termin</th><th>Do zapłaty</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>';
+}
+
+function importedCashFlowText() {
+  if (!importedCashFlow) return '';
+
+  var ci = importedCashFlow.cashIn;
+  var co = importedCashFlow.cashOut;
+  var lines = [];
+  lines.push('IMPORTED CASH FLOW DASHBOARD');
+  lines.push('─'.repeat(64));
+  lines.push('Source sheets: receivables ' + importedCashFlow.receivables.sheetName + ', payables ' + importedCashFlow.payables.sheetName);
+  lines.push('');
+  lines.push('Cash in');
+  lines.push('- Overdue receivables: ' + formatMoney(ci.overdueTotal) + ' / ' + ci.overdue.length + ' items');
+  lines.push('- Expected next 7 days: ' + formatMoney(ci.next7Total) + ' / ' + ci.next7.length + ' items');
+  lines.push('');
+  lines.push('Cash out');
+  lines.push('- Overdue payables: ' + formatMoney(co.overdueTotal) + ' / ' + co.overdue.length + ' items');
+  lines.push('- Expected next 7 days: ' + formatMoney(co.next7Total) + ' / ' + co.next7.length + ' items');
+  lines.push('');
+  lines.push('Net next 7 days: ' + formatMoney(ci.next7Total - co.next7Total));
+  lines.push('');
+
+  function addItems(title, items) {
+    lines.push(title);
+    if (!items.length) {
+      lines.push('(empty)');
+    } else {
+      items.sort(function(a, b) { return a.dueDate - b.dueDate; }).forEach(function(i, idx) {
+        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
+      });
+    }
+    lines.push('');
+  }
+
+  addItems('Expected cash in — next 7 days', ci.next7);
+  addItems('Expected cash out — next 7 days', co.next7);
+  return lines.join('\\n');
+}
+
+
 function addCashIn() {
   rowCounters.cashin++;
   var tr = document.createElement('tr');
@@ -829,8 +1202,13 @@ function buildOutput() {
     ''
   ];
 
-  addSection(lines, 'CASH IN — EXPECTED PAYMENTS', ['Source / client', 'Expected date', 'Amount / range', 'Confidence', 'Comment'], getTableRows('cashin-body'), [1]);
-  addSection(lines, 'CASH OUT — EXPECTED PAYMENTS', ['Supplier / cost', 'Expected date', 'Amount / range', 'Flexibility', 'Comment'], getTableRows('cashout-body'), [1]);
+  var importedText = importedCashFlowText();
+  if (importedText) {
+    lines.push(importedText);
+  }
+
+  addSection(lines, 'CASH IN — MANUAL NOTES / EXCEPTIONS', ['Source / client', 'Expected date', 'Amount / range', 'Confidence', 'Comment'], getTableRows('cashin-body'), [1]);
+  addSection(lines, 'CASH OUT — MANUAL NOTES / EXCEPTIONS', ['Supplier / cost', 'Expected date', 'Amount / range', 'Flexibility', 'Comment'], getTableRows('cashout-body'), [1]);
   addSection(lines, 'OVERDUE RECEIVABLES', ['Client', 'Amount / range', 'Days overdue', 'Owner', 'Next action'], getTableRows('overdue-body'), []);
   addSection(lines, 'DECISIONS', ['Decision', 'Owner', 'Cash flow impact', 'Follow-up', 'Comment'], getTableRows('decisions-body'), []);
   addSection(lines, 'RISKS / BLOCKERS', ['Risk / blocker', 'Impact', 'Owner', 'Next step'], getTableRows('risks-body'), []);
