@@ -190,7 +190,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.5</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -826,19 +826,38 @@ function parseSheetDate(name, meetingYear) {
 }
 
 function findNewestSheetName(workbook, meetingDate) {
-  var meetingYear = meetingDate ? meetingDate.getFullYear() : new Date().getFullYear();
-  var candidates = workbook.SheetNames.map(function(name, idx) {
-    return { name: name, idx: idx, date: parseSheetDate(name, meetingYear) };
-  }).filter(function(x) { return x.date instanceof Date && !isNaN(x.date); });
+  var referenceDate = meetingDate ? stripTime(meetingDate) : stripTime(new Date());
+  var meetingYear = referenceDate.getFullYear();
 
-  if (candidates.length === 0) {
+  var datedSheets = workbook.SheetNames.map(function(name, idx) {
+    return { name: name, idx: idx, date: parseSheetDate(name, meetingYear) };
+  }).filter(function(x) {
+    return x.date instanceof Date && !isNaN(x.date);
+  });
+
+  if (datedSheets.length === 0) {
     return workbook.SheetNames[workbook.SheetNames.length - 1];
   }
 
-  candidates.sort(function(a, b) {
-    return b.date - a.date || b.idx - a.idx;
+  // Correct rule for cash-flow snapshots:
+  // choose the latest dated sheet that is not later than the meeting date.
+  // Example: for meeting date 22.05, use 22.05 instead of future-looking 30.12.
+  var notFuture = datedSheets.filter(function(x) {
+    return stripTime(x.date) <= referenceDate;
   });
-  return candidates[0].name;
+
+  if (notFuture.length > 0) {
+    notFuture.sort(function(a, b) {
+      return b.date - a.date || b.idx - a.idx;
+    });
+    return notFuture[0].name;
+  }
+
+  // If all dated sheets are later than the meeting date, use the earliest dated sheet.
+  datedSheets.sort(function(a, b) {
+    return a.date - b.date || a.idx - b.idx;
+  });
+  return datedSheets[0].name;
 }
 
 function excelDateToJSDate(value) {
