@@ -134,6 +134,8 @@
   .mini-table td { font-size: 12px; padding: 6px; border-bottom: 1px solid #e5f7ee; vertical-align: top; }
   .amount-pos { color: var(--cash-positive); font-weight: 700; }
   .amount-neg { color: var(--cash-negative); font-weight: 700; }
+  .amount-warning { color: var(--warning); font-weight: 700; }
+  .amount-neutral { color: var(--text); font-weight: 700; }
   @media (max-width: 900px) {
     .import-grid, .kpi-grid { grid-template-columns: 1fr; }
   }
@@ -172,7 +174,7 @@
   .archive-controls { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
   .archive-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
   .archive-card-header { padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-  .archive-card-header:hover { background: #e8e4dc; }
+  .archive-card-header:hover { background: #bbf7d0; }
   .archive-card-date { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: var(--accent); }
   .archive-card-meta { font-size: 12px; color: var(--text-muted); }
   .archive-card-body { padding: 14px 16px; display: none; }
@@ -190,7 +192,7 @@
 <body>
 
 <div class="app-header">
-  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.6</span></div>
+  <div class="logo">MS365 <span>///</span> Cash Flow Team <span class="cash-flow-mark">FINANCE v0.8.1</span></div>
   <div class="header-actions">
     <span id="user-name" style="font-size:12px;opacity:.7;font-family:'IBM Plex Mono',monospace"></span>
     <button class="btn btn-outline" id="btn-login" onclick="signIn()" style="display:none">Sign in</button>
@@ -288,7 +290,7 @@
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-label">Overdue cash in</div>
-            <div class="kpi-value amount-pos" id="kpi-overdue-in">—</div>
+            <div class="kpi-value amount-warning" id="kpi-overdue-in">—</div>
             <div class="kpi-small" id="kpi-overdue-in-count">—</div>
           </div>
           <div class="kpi-card">
@@ -303,7 +305,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Next 7 days cash out</div>
-            <div class="kpi-value amount-neg" id="kpi-week-out">—</div>
+            <div class="kpi-value amount-neutral" id="kpi-week-out">—</div>
             <div class="kpi-small" id="kpi-week-out-count">—</div>
           </div>
         </div>
@@ -539,7 +541,7 @@
   <div class="tab-panel" id="panel-settings">
     <div class="section">
       <div class="section-header">
-        <div class="section-title">Configuration aplikacji</div>
+        <div class="section-title">Application configuration</div>
       </div>
       <div class="section-body">
         <p class="hint">
@@ -607,14 +609,14 @@ var LIST_RISKS     = 'CF_Risks';
 
 // Planner — fill these values after creating a separate Cash Flow Team Tasks plan.
 // If left empty, the app will save tasks only to SharePoint.
-var PLANNER_PLAN_ID    = '';
-var PLANNER_BUCKET_TODO = '';
-var PLANNER_GROUP_ID   = '';
+var PLANNER_PLAN_ID    = '2YDJHrqkgkejEmy_e9uf45gADgLS';
+var PLANNER_BUCKET_TODO = 'MAMgudoPnUefkIxy61rogJgAEhy2';
+var PLANNER_GROUP_ID   = '0c12650e-4387-4a39-bcfe-5da8082623b2';
 
 var teamEmails = {
   'Hubert':   'h.szulc@structura360.com',
-  'Karolina': 'UZUPELNIJ_EMAIL_KAROLINY',
-  'Erik':     'UZUPELNIJ_EMAIL_ERIKA'
+  'Karolina': 'ADD_KAROLINA_EMAIL',
+  'Erik':     'ADD_ERIK_EMAIL'
 };
 var teamMembers = Object.keys(teamEmails);
 var teamUserIds = {};
@@ -668,7 +670,8 @@ window.onload = function() {
 };
 
 async function initAuth() {
-  msalInstance = await msal.PublicClientApplication.createPublicClientApplication(msalConfig);
+  msalInstance = new msal.PublicClientApplication(msalConfig);
+  await msalInstance.initialize();
   var response = await msalInstance.handleRedirectPromise();
   if (response) { currentAccount = response.account; onLoggedIn(); return; }
   var accounts = msalInstance.getAllAccounts();
@@ -752,7 +755,7 @@ async function getListId(token, siteid, listName) {
 async function loadTeamUserIds(token) {
   for (var name in teamEmails) {
     var email = teamEmails[name];
-    if (!email || email.indexOf('UZUPELNIJ') === 0) continue;
+    if (!email || (email.indexOf('UZUPELNIJ') === 0 || email.indexOf('ADD_') === 0)) continue;
     try {
       var r = await fetch('https://graph.microsoft.com/v1.0/users/' + encodeURIComponent(email) + '?$select=id', {
         headers: { Authorization: 'Bearer ' + token }
@@ -899,12 +902,14 @@ function parseAmount(value) {
 
 function findHeaderRow(rows) {
   for (var i = 0; i < Math.min(rows.length, 30); i++) {
+    if (!Array.isArray(rows[i]) || rows[i].length === 0) continue;
     var normalized = rows[i].map(normalizeHeader);
     var hasContractor = normalized.indexOf('kontrahent') >= 0;
     var hasDoc = normalized.indexOf('dokument') >= 0;
     var hasDue = normalized.indexOf('termin') >= 0;
-    var hasPay = normalized.indexOf('do zaplaty') >= 0;
-    if (hasContractor && hasDoc && hasDue && hasPay) return i;
+    var hasPayableAmount = normalized.indexOf('do zaplaty') >= 0;
+    var hasReceivableAmount = normalized.indexOf('brutto') >= 0;
+    if (hasContractor && hasDoc && hasDue && (hasPayableAmount || hasReceivableAmount)) return i;
   }
   return -1;
 }
@@ -1072,19 +1077,10 @@ function renderImportedCashFlow() {
   netEl.className = 'kpi-value ' + (net >= 0 ? 'amount-pos' : 'amount-neg');
 
   document.getElementById('kpi-source-sheets').textContent =
-    'Sheets: receivables ' + importedCashFlow.receivables.sheetName + ', zobowiązania ' + importedCashFlow.payables.sheetName;
+    'Sheets: receivables ' + importedCashFlow.receivables.sheetName + ', payables ' + importedCashFlow.payables.sheetName;
 
   document.getElementById('cashin-next7-table').innerHTML = buildMiniTable(ci.next7, 'in');
   document.getElementById('cashout-next7-table').innerHTML = buildMiniTable(co.next7, 'out');
-}
-
-
-function formatDateLocal(date) {
-  if (!(date instanceof Date) || isNaN(date)) return '—';
-  var day = String(date.getDate()).padStart(2, '0');
-  var month = String(date.getMonth() + 1).padStart(2, '0');
-  var year = date.getFullYear();
-  return day + '.' + month + '.' + year;
 }
 
 function buildMiniTable(items, direction) {
@@ -1096,8 +1092,8 @@ function buildMiniTable(items, direction) {
       return '<tr>' +
         '<td>' + escHtml(i.contractor) + '</td>' +
         '<td>' + escHtml(i.document) + '</td>' +
-        '<td>' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + '</td>' +
-        '<td><strong>' + formatDateLocal(i.dueDate) + '</strong></td>' +
+        '<td>' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + '</td>' +
+        '<td><strong>' + fmtDate(i.dueDate.toISOString().slice(0,10)) + '</strong></td>' +
         '<td class="' + (direction === 'in' ? 'amount-pos' : 'amount-neg') + '">' + formatMoney(i.amount) + '</td>' +
       '</tr>';
     }).join('');
@@ -1134,7 +1130,7 @@ function importedCashFlowText() {
       lines.push('(empty)');
     } else {
       items.sort(function(a, b) { return a.dueDate - b.dueDate; }).forEach(function(i, idx) {
-        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? formatDateLocal(i.issueDate) : '—') + ' | payment due date: ' + formatDateLocal(i.dueDate) + ' | ' + formatMoney(i.amount));
+        lines.push((idx + 1) + '. ' + i.contractor + ' | ' + i.document + ' | issue date: ' + (i.issueDate ? fmtDate(i.issueDate.toISOString().slice(0,10)) : '—') + ' | payment due date: ' + fmtDate(i.dueDate.toISOString().slice(0,10)) + ' | ' + formatMoney(i.amount));
       });
     }
     lines.push('');
@@ -1142,7 +1138,7 @@ function importedCashFlowText() {
 
   addItems('Expected cash in — next 7 days', ci.next7);
   addItems('Expected cash out — next 7 days', co.next7);
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 
@@ -1480,14 +1476,62 @@ function closeModal() { document.getElementById('modal').classList.remove('activ
 
 function copyToClipboard() {
   var ta = document.getElementById('output-text');
-  ta.select();
-  document.execCommand('copy');
-  document.getElementById('copy-ok').classList.add('show');
+  var text = ta.value || '';
+
+  function showCopied() {
+    var ok = document.getElementById('copy-ok');
+    if (ok) ok.classList.add('show');
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showCopied).catch(function() {
+      ta.select();
+      document.execCommand('copy');
+      showCopied();
+    });
+  } else {
+    ta.select();
+    document.execCommand('copy');
+    showCopied();
+  }
+}
+
+function resetImportState() {
+  importedCashFlow = null;
+
+  var dashboard = document.getElementById('cashflow-dashboard-section');
+  if (dashboard) dashboard.style.display = 'none';
+
+  var status = document.getElementById('import-status-box');
+  if (status) status.textContent = '';
+
+  var recInput = document.getElementById('receivables-file');
+  var payInput = document.getElementById('payables-file');
+  if (recInput) recInput.value = '';
+  if (payInput) payInput.value = '';
+
+  var recName = document.getElementById('receivables-file-name');
+  var payName = document.getElementById('payables-file-name');
+  if (recName) recName.textContent = 'No file selected';
+  if (payName) payName.textContent = 'No file selected';
+
+  ['kpi-overdue-in', 'kpi-week-in', 'kpi-overdue-out', 'kpi-week-out', 'kpi-net-week',
+   'kpi-overdue-in-count', 'kpi-week-in-count', 'kpi-overdue-out-count', 'kpi-week-out-count',
+   'kpi-source-sheets'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+
+  var cashInTable = document.getElementById('cashin-next7-table');
+  var cashOutTable = document.getElementById('cashout-next7-table');
+  if (cashInTable) cashInTable.innerHTML = '';
+  if (cashOutTable) cashOutTable.innerHTML = '';
 }
 
 function resetForm() {
   if (!confirm('Clear the form and start a new note?')) return;
-  ['cashin-body','cashout-body','overdue-body','decisions-body','risks-body','actions-body'].forEach(function(id) {
+  
+  resetImportState();['cashin-body','cashout-body','overdue-body','decisions-body','risks-body','actions-body'].forEach(function(id) {
     document.getElementById(id).innerHTML = '';
   });
   rowCounters = { cashin: 0, cashout: 0, overdue: 0, decisions: 0, risks: 0, actions: 0 };
